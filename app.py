@@ -1,2 +1,5 @@
-def add(a,b):
-    return a+b
+def handler(event, context):
+    return {
+        "statusCode": 200,
+        "body": "Hello from Lambda Docker!"
+    }
