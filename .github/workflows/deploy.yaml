@@ -50,5 +50,4 @@ jobs:
 
     - name: Terraform Apply
       working-directory: terraform
-      run: terraform apply -auto-approve \
-        -var="image_uri=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
+      run: terraform apply -auto-approve -var="image_uri=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
