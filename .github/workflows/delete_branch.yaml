@@ -1,20 +1,24 @@
-  delete_branch:
+delete_branch:
 
-    needs: deploy
+  needs: deploy
+  runs-on: ubuntu-latest
 
-    runs-on: ubuntu-latest
+  if: github.event_name == 'push' && contains(github.event.head_commit.message, 'Merge pull request')
 
-    steps:
+  steps:
 
     - name: Delete merged branch
       uses: actions/github-script@v7
       with:
         script: |
-          const branch = context.payload.head_ref;
-          if(branch){
+          const branch = context.payload.head_commit.message.match(/from (.*)/);
+
+          if (branch && branch[1]) {
+            const branchName = branch[1].split(':')[1];
+
             await github.rest.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: `heads/${branch}`
-            })
+              ref: `heads/${branchName}`
+            });
           }
