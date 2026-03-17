@@ -1,3 +1,7 @@
+data "aws_iam_role" "lambda_role_existing" {
+  name = "lambda-execution-role"
+}
+
 resource "aws_lambda_function" "lambda" {
 
   function_name = "devops-ecr-lambda"
@@ -6,10 +10,11 @@ resource "aws_lambda_function" "lambda" {
 
   image_uri = var.image_uri
 
-  role = aws_iam_role.lambda_role.arn
+  role = try(data.aws_iam_role.lambda_role_existing.arn, aws_iam_role.lambda_role[0].arn)
 }
 
 resource "aws_iam_role" "lambda_role" {
+  count = try(data.aws_iam_role.lambda_role_existing.id, null) != null ? 0 : 1
 
   name = "lambda-execution-role"
 
@@ -29,6 +34,6 @@ resource "aws_iam_role" "lambda_role" {
 
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
 
-  role       = aws_iam_role.lambda_role.name
+  role       = try(data.aws_iam_role.lambda_role_existing.name, aws_iam_role.lambda_role[0].name)
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
