@@ -29,18 +29,13 @@ resource "aws_security_group" "rds_sg" {
     cidr_blocks = [var.allowed_ip]
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+  role = data.aws_iam_role.lambda_role_existing.arn
 
-# Subnet group
-resource "aws_db_subnet_group" "default" {
-  name       = "rds-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_basic]
 }
 
 # RDS Instance
@@ -61,7 +56,10 @@ resource "aws_db_instance" "rds" {
 
   skip_final_snapshot     = true
 
-  tags = {
-    Name = "MyRDSInstance"
+  role       = data.aws_iam_role.lambda_role_existing.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
