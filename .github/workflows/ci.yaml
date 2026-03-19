@@ -32,6 +32,19 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
+    - name: Generate Tests using AI
+      run: python ai_generate_tests.py
+      env:
+       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Commit tests
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add test_app.py
+        git commit -m "Add AI-generated tests" || echo "No changes"
+        git push
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
