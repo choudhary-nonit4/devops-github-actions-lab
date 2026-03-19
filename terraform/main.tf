@@ -11,6 +11,13 @@ resource "aws_lambda_function" "lambda" {
   image_uri = var.image_uri
 
   role = try(data.aws_iam_role.lambda_role_existing.arn, aws_iam_role.lambda_role[0].arn)
+
+  lifecycle {
+    create_before_destroy = true
+    replace_triggered_by  = [aws_iam_role.lambda_role]
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_basic]
 }
 
 resource "aws_iam_role" "lambda_role" {
@@ -30,10 +37,18 @@ resource "aws_iam_role" "lambda_role" {
       }
     ]
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
 
   role       = try(data.aws_iam_role.lambda_role_existing.name, aws_iam_role.lambda_role[0].name)
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
