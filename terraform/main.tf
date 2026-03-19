@@ -35,12 +35,20 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Subnet group
 resource "aws_db_subnet_group" "default" {
   name       = "rds-subnet-group"
   subnet_ids = data.aws_subnets.default.ids
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # RDS Instance
@@ -60,6 +68,10 @@ resource "aws_db_instance" "rds" {
   db_subnet_group_name    = aws_db_subnet_group.default.name
 
   skip_final_snapshot     = true
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = {
     Name = "MyRDSInstance"
