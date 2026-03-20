@@ -1,53 +1,59 @@
-name: Deploy Lambda
+name: Deploy to EC2
 
 on:
   push:
-    branches:
-      - main
-
-concurrency:
-  group: lambda-deploy
-  cancel-in-progress: true
+    branches: [main]
 
 jobs:
-
   deploy:
-
     runs-on: ubuntu-latest
 
+    environment:
+      name: production
+
     steps:
+      - uses: actions/checkout@v4
 
-    - uses: actions/checkout@v3
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-    - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+      - name: Build Docker Image
+        run: docker build -t node-app .
 
-    - name: Login to ECR
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Tag Image
+        run: |
+          docker tag node-app:latest \
+          ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-    - name: Build Docker Image
-      run: docker build -t lambda-image .
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
 
-    - name: Tag Docker Image
-      run: |
-        docker tag lambda-image:latest \
-        ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+      - name: Push Image
+        run: |
+          docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-    - name: Push Image to ECR
-      run: |
-        docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+      - name: Terraform Apply
+        working-directory: terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+          -var="image_uri=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" \
+          -var="key_name=${{ secrets.KEY_NAME }}"
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Wait for app
+        run: sleep 60
 
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
+      - name: Health Check
+        run: |
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=node-app" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
 
-    - name: Terraform Apply
-      working-directory: terraform
-      run: terraform apply -auto-approve -var="image_uri=${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
+          curl http://$PUBLIC_IP:3000/health

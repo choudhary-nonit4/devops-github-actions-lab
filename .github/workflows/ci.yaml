@@ -2,47 +2,27 @@ name: PR Validation
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   validate:
-
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-    - name: Setup Node / Python (if needed)
-      run: echo "Setup your runtime here"
+      - name: Install & Test
+        run: |
+          npm install
+          npm test
 
-    - name: Run Tests
-      run: |
-        echo "Run your tests here"
-        # example:
-        # npm install
-        # npm test
-
-    - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
-
-    - name: Terraform Validate
-      working-directory: terraform
-      run: terraform validate
-
-    - name: Terraform Plan
-      working-directory: terraform
-      run: terraform plan -var="image_uri=dummy-image"
+      - name: Terraform Validate
+        working-directory: terraform
+        run: |
+          terraform init -backend=false
+          terraform validate

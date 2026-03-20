@@ -1,5 +1,12 @@
-FROM public.ecr.aws/lambda/python:3.10
+FROM node:18
 
-COPY app.py ${LAMBDA_TASK_ROOT}
+WORKDIR /app
 
-CMD ["app.handler"]
+COPY /node-app/package*.json ./
+RUN npm install
+
+COPY /node-app/. .
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
