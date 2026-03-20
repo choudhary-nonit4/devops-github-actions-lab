@@ -1,4 +1,4 @@
-name: Destroy Lambda
+name: Destroy Infrastructure
 
 on:
   workflow_dispatch:
@@ -10,33 +10,38 @@ on:
 jobs:
   destroy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    
-    - uses: actions/checkout@v3
-    
-    - name: Validate Confirmation
-      run: |
-        if [ "${{ github.event.inputs.confirm_destroy }}" != "destroy" ]; then
-          echo "Destruction cancelled. Please enter 'destroy' to confirm."
-          exit 1
-        fi
-        echo "Confirmed: Destroying resources..."
-    
-    - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-    
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
-    
-    - name: Terraform Destroy
-      working-directory: terraform
-      run: terraform destroy -auto-approve -var="enable_destroy=true" -var="image_uri=dummy-image" -var="db_password=${{ secrets.DB_PASSWORD }}" -var="allowed_ip=${{ secrets.ALLOWED_IP }}"
+      - uses: actions/checkout@v4
+
+      # ✅ Safety check
+      - name: Validate Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "destroy" ]; then
+            echo "❌ Destruction cancelled. Type 'destroy' to proceed."
+            exit 1
+          fi
+          echo "✅ पुष्टि मिली: संसाधनों को हटाया जा रहा है..."
+
+      # ✅ AWS Auth
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # ✅ Terraform Setup
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      # ✅ Destroy Infra
+      - name: Terraform Destroy
+        working-directory: terraform
+        run: |
+          terraform destroy -auto-approve \
+          -var="image_uri=dummy-image"
