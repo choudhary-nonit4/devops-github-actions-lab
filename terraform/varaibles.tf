@@ -2,6 +2,10 @@ variable "region" {
   default = "us-east-1"
 }
 
+variable "image_uri" {
+  description = "Docker image URI"
+}
+
 variable "db_name" {
   default = "mydb"
 }
