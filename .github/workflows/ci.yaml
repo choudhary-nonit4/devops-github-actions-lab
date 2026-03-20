@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -11,27 +15,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ---------------------------
+      # Node.js Setup
+      # ---------------------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Install & Test
-        working-directory: node-app
         run: |
           npm install
           npm test
 
+      # ---------------------------
+      # Terraform Setup
+      # ---------------------------
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init (Safe Mode)
+        working-directory: terraform
+        run: terraform init -backend=false
 
       - name: Terraform Validate
         working-directory: terraform
-        run: |
-          terraform init -backend=false
-          terraform validate
+        run: terraform validate
 
+      # ---------------------------
+      # Terraform Plan
+      # ---------------------------
       - name: Terraform Plan
+        id: plan
         working-directory: terraform
         run: |
-          terraform plan
+          terraform plan -no-color \
+          -var="image_uri=dummy-image" > plan.txt
+
+      # ---------------------------
+      # Upload Plan Artifact
+      # ---------------------------
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/plan.txt
