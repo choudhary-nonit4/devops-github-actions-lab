@@ -39,13 +39,12 @@ resource "aws_security_group" "app_sg" {
 # ---------------------------
 resource "aws_instance" "app" {
   ami           = "ami-0c02fb55956c7d316"
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"  # ✅ updated
 
-  key_name = "docker-ec2"  # IMPORTANT: AWS expects key name, not .pem file
+  key_name = "docker-ec2"
 
   associate_public_ip_address = true
-
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
+  vpc_security_group_ids      = [aws_security_group.app_sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
@@ -54,7 +53,6 @@ resource "aws_instance" "app" {
               service docker start
               usermod -aG docker ec2-user
 
-              # Pull and run your container
               docker pull ${var.image_uri}
               docker run -d -p 3000:3000 ${var.image_uri}
               EOF
