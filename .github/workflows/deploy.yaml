@@ -38,6 +38,9 @@ jobs:
         run: |
           docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
       - name: Terraform Apply
         working-directory: terraform
         run: |
